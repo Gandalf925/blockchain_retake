@@ -4,7 +4,9 @@ import hashlib
 
 from ecdsa import NIST256p
 from ecdsa import SigningKey
-from utils import sorted_dict_by_key
+
+import utils
+
 
 class Wallet(object):
 
@@ -37,7 +39,8 @@ class Wallet(object):
 
     network_byte = b'00'
     network_bitcoin_public_key = network_byte + ripemd160_bpk_hex
-    network_bitcoin_public_key_bytes = codecs.decode(network_bitcoin_public_key, 'hex')
+    network_bitcoin_public_key_bytes = codecs.decode(
+      network_bitcoin_public_key, 'hex')
 
     sha256_bpk = hashlib.sha256(network_bitcoin_public_key_bytes)
     sha256_bpk_digest = sha256_bpk.digest()
@@ -49,11 +52,15 @@ class Wallet(object):
 
     address_hex = (network_bitcoin_public_key + checksum).decode('utf-8')
 
-    blockchain_address = base58.b58encode(address_hex).decode(('utf-8'))
+    blockchain_address = base58.b58encode(address_hex).decode('utf-8')
     return blockchain_address
 
+
 class Transaction(object):
-  def __init__(self, sender_private_key, sender_public_key, sender_blockchain_address, recipient_blockchain_address, value):
+  
+  def __init__(self, sender_private_key, sender_public_key, 
+               sender_blockchain_address, recipient_blockchain_address,
+               value):
     self.sender_private_key = sender_private_key
     self.sender_public_key = sender_public_key
     self.sender_blockchain_address = sender_blockchain_address
@@ -62,7 +69,7 @@ class Transaction(object):
   
   def generate_signature(self):
     sha256 = hashlib.sha256()
-    transaction = sorted_dict_by_key({
+    transaction = utils.sorted_dict_by_key({
       'sender_blockchain_address': self.sender_blockchain_address,
       'recipient_blockchain_address': self.recipient_blockchain_address,
       'value': float(self.value)
@@ -70,8 +77,7 @@ class Transaction(object):
     sha256.update(str(transaction).encode('utf-8'))
     message = sha256.digest()
     private_key = SigningKey.from_string(
-      bytes().fromhex(self.sender_private_key), curve=NIST256p
-    )
+      bytes().fromhex(self.sender_private_key), curve=NIST256p)
     private_key_sign = private_key.sign(message)
     signature = private_key_sign.hex()
     return signature
@@ -79,9 +85,27 @@ class Transaction(object):
 
 
 if __name__ == '__main__':
-  wallet = Wallet()
-  print(wallet.private_key)
-  print(wallet.public_key)
-  print(wallet.blockchain_address)
-  t = Transaction(wallet.private_key, wallet.public_key, wallet.blockchain_address, 'B', 1.0)
-  print(t.generate_signature())
+  wallet_M = Wallet()
+  wallet_A = Wallet()
+  wallet_B = Wallet()
+  t = Transaction(
+    wallet_A.private_key, wallet_A.public_key, wallet_A.blockchain_address,
+    wallet_B.blockchain_address, 1.0)
+
+  ####Blockchain Node
+  import blockchain
+  block_chain = blockchain.BlockChain(
+    blockchain_address=wallet_M.blockchain_address)
+  is_added = block_chain.add_transaction(
+    wallet_A.blockchain_address,
+    wallet_B.blockchain_address,
+    1.0,
+    wallet_A.public_key,
+    t.generate_signature()
+  )
+  print('Added?:', is_added)
+  block_chain.mining()
+  utils.pprint(block_chain.chain)
+
+  print('A', block_chain.calculate_total_ammount(wallet_A.blockchain_address))
+  print('B', block_chain.calculate_total_ammount(wallet_B.blockchain_address))
