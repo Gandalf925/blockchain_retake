@@ -19,11 +19,12 @@ logger = logging.getLogger(__name__)
 
 class BlockChain(object):
 
-  def __init__(self, blockchain_address=None):
+  def __init__(self, blockchain_address=None, port=None):
     self.transaction_pool = []
     self.chain = []
     self.create_block(0, self.hash({}))
     self.blockchain_address = blockchain_address
+    self.port = port
 
   def create_block(self, nonce, prevhash):
     block = utils.sorted_dict_by_key({
@@ -55,6 +56,10 @@ class BlockChain(object):
 
     if self.verify_transaction_signature(
       sender_public_key, signature, transaction):
+      # if self.calculate_total_ammount(sender_blockchain_address) < float(value):
+      #   logger.error({'action': "add_transaction",'error': 'no value' })
+      #   return False
+
       self.transaction_pool.append(transaction)
       return True
     return False
