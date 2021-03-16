@@ -66,7 +66,7 @@ def create_transaction():
 
   if response.status_code == 201:
     return jsonify({'message': 'success'}), 201
-  return jsonifu({'message': 'fail', 'response': response}), 400
+  return jsonify({'message': 'fail', 'response': response}), 400
 
 
 
